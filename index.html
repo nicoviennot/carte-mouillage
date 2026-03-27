@@ -82,18 +82,28 @@
         text-transform: uppercase;
         letter-spacing: 0.06em;
       }
-      .bandeau-instruction {
+      .bandeau-titre {
+        font-size: 22px;
+        font-weight: 700;
+        color: #003189;
+        margin-left: 8px;
+        flex: 1;
+      }
+      #notice {
+        background: #dfe6fb;
+        border-left: 4px solid #003189;
+        padding: 10px 24px;
         font-size: 14px;
         color: #1e1e1e;
-        background: #f0f5ff;
-        border-left: 4px solid #003189;
-        padding: 6px 12px;
-        border-radius: 0 4px 4px 0;
-        margin-left: 8px;
-        line-height: 1.4;
+        line-height: 1.6;
+        box-sizing: border-box;
+        width: 100%;
+      }
+      #notice strong {
+        color: #c9191e;
       }
       #map {
-        height: calc(100% - 110px);
+        height: calc(100% - 110px - 52px);
         width: 100%;
         background: #000120;
       }
@@ -155,10 +165,14 @@
         DGALN
         <small>Direction Générale de l'Aménagement,<br>du Logement et de la Nature</small>
       </div>
-      <div class="bandeau-instruction">
-        Sélectionner la zone de mouillage souhaitée et copier les coordonnées GPS
-      </div>
+      <h1 class="bandeau-titre">Carte AMIDOMAR</h1>
     </header>
+
+    <!-- Bandeau d'information DSFR -->
+    <div id="notice" role="note">
+      Positionner votre curseur sur la zone de mouillage souhaitée, copier les coordonnées GPS et retourner les coller dans le formulaire de votre démarche.<br>
+      <strong>Attention à respecter les zones interdites et sensibles.</strong>
+    </div>
 
     <!-- Le conteneur de la carte -->
     <div id="map"></div>
