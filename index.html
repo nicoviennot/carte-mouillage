@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ma carte</title>
+
+    <!-- Importation des bibliothèques MapLibre GL JS -->
+    <link
+      href="https://unpkg.com/maplibre-gl@^5.5.0/dist/maplibre-gl.css"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/maplibre-gl@^5.5.0/dist/maplibre-gl.js"></script>
+
+    <!-- Importation des bibliothèques Carte Facile -->
+    <link
+      href="https://unpkg.com/carte-facile@^0.9.0/dist/carte-facile.css"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/carte-facile@^0.9.0/dist/carte-facile.js"></script>
+
+    <!-- Style pour afficher la carte en plein écran -->
+    <style>
+      html,
+      body {
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        font-family: Marianne, arial, sans-serif;
+      }
+      #bandeau {
+        background: white;
+        border-bottom: 3px solid #003189;
+        display: flex;
+        align-items: center;
+        padding: 10px 24px;
+        gap: 16px;
+        min-height: 110px;
+        box-sizing: border-box;
+      }
+      .bandeau-logo-bloc {
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        line-height: 1.25;
+      }
+      .bandeau-logo-bloc .ministeres {
+        font-size: 13px;
+        font-weight: 800;
+        color: #1a1a1a;
+        text-transform: uppercase;
+        letter-spacing: 0.01em;
+        margin: 0;
+        white-space: nowrap;
+      }
+      .bandeau-logo-bloc .devise {
+        font-size: 10px;
+        font-style: italic;
+        color: #1a1a1a;
+        margin: 2px 0 0 0;
+        line-height: 1.5;
+      }
+      .bandeau-separator {
+        width: 1px;
+        height: 48px;
+        background: #003189;
+        flex-shrink: 0;
+        margin: 0 4px;
+      }
+      .bandeau-operator {
+        font-size: 15px;
+        font-weight: 700;
+        color: #003189;
+        flex-shrink: 0;
+        line-height: 1.3;
+      }
+      .bandeau-operator small {
+        display: block;
+        font-size: 10px;
+        font-weight: 400;
+        color: #555;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .bandeau-instruction {
+        font-size: 14px;
+        color: #1e1e1e;
+        background: #f0f5ff;
+        border-left: 4px solid #003189;
+        padding: 6px 12px;
+        border-radius: 0 4px 4px 0;
+        margin-left: 8px;
+        line-height: 1.4;
+      }
+      #map {
+        height: calc(100% - 110px);
+        width: 100%;
+        background: #000120;
+      }
+      #coords-popup {
+        position: fixed;
+        bottom: 40px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: white;
+        border-radius: 8px;
+        padding: 10px 16px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: monospace;
+        font-size: 14px;
+        z-index: 1000;
+        opacity: 0;
+        transition: opacity 0.2s;
+        pointer-events: none;
+      }
+      #coords-popup.visible {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      #copy-btn {
+        background: #1a73e8;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        padding: 5px 10px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      #copy-btn:hover {
+        background: #1558b0;
+      }
+      #copy-btn.copied {
+        background: #2e7d32;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Bandeau DSFR DGALN -->
+    <header id="bandeau" role="banner">
+      <div class="bandeau-logo-bloc">
+        <!-- Drapeau miniature RF -->
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 30" width="45" height="30" aria-hidden="true" focusable="false" style="margin-bottom:4px">
+          <rect x="0"  y="0" width="15" height="30" fill="#003189"/>
+          <rect x="15" y="0" width="15" height="30" fill="#FFFFFF"/>
+          <rect x="30" y="0" width="15" height="30" fill="#E1000F"/>
+        </svg>
+        <p class="ministeres">Ministères<br>Transition écologique<br>Aménagement du territoire<br>Transports<br>Ville et logement</p>
+        <p class="devise">Liberté<br>Égalité<br>Fraternité</p>
+      </div>
+      <div class="bandeau-separator"></div>
+      <div class="bandeau-operator">
+        DGALN
+        <small>Direction Générale de l'Aménagement,<br>du Logement et de la Nature</small>
+      </div>
+      <div class="bandeau-instruction">
+        Sélectionner la zone de mouillage souhaitée et copier les coordonnées GPS
+      </div>
+    </header>
+
+    <!-- Le conteneur de la carte -->
+    <div id="map"></div>
+
+    <!-- Popup de coordonnées -->
+    <div id="coords-popup">
+      <span id="coords-text"></span>
+      <button id="copy-btn">Copier</button>
+    </div>
+
+    <!-- Le script qui initialise la carte -->
+    <script>
+      // Création la carte
+      let map = new maplibregl.Map({
+        container: "map", // id du conteneur de la carte
+        style: CarteFacile.mapStyles.simple, // Style de carte
+        maxZoom: 18.9, // niveau de zoom maximum, adapté aux cartes utilisant les données IGN
+      });
+
+      // Ajout d'une barre de recherche
+      map.addControl(new CarteFacile.SearchControl);
+
+      // Ajout d'un contrôle de navigation
+      map.addControl(new maplibregl.NavigationControl);
+
+      // Ajout d'une échelle
+      map.addControl(new maplibregl.ScaleControl);
+
+      // Ajout d'un bouton de Géolocalisation
+      map.addControl(new maplibregl.GeolocateControl);
+
+      // Ajout d'un sélecteur de carte
+      map.addControl(new CarteFacile.MapSelectorControl);
+
+      // Ajouter des surcouches (dé-commenter les lignes en dessous pour ajouter ces surcouches)
+      //CarteFacile.addOverlay(map, 'cadastre');
+      //CarteFacile.addOverlay(map, ['levelCurves', 'administrativeBoundaries']);
+
+      // Masquer des couches (dé-commenter les lignes en dessous pour masquer ces surcouches)
+      //CarteFacile.hideLayer(map, 'buildings');
+      //CarteFacile.hideLayer(map, ['buildings', 'street_labels']);
+
+      // Marqueur placé au clic
+      let marker = null;
+      const popup = document.getElementById('coords-popup');
+      const coordsText = document.getElementById('coords-text');
+      const copyBtn = document.getElementById('copy-btn');
+
+      map.on('click', (e) => {
+        const { lng, lat } = e.lngLat;
+        const coords = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+
+        // Placer ou déplacer le marqueur
+        if (marker) {
+          marker.setLngLat([lng, lat]);
+        } else {
+          marker = new maplibregl.Marker({ color: '#e53935' })
+            .setLngLat([lng, lat])
+            .addTo(map);
+        }
+
+        // Afficher les coordonnées
+        coordsText.textContent = coords;
+        popup.classList.add('visible');
+        copyBtn.textContent = 'Copier';
+        copyBtn.classList.remove('copied');
+      });
+
+      copyBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(coordsText.textContent).then(() => {
+          copyBtn.textContent = 'Copié !';
+          copyBtn.classList.add('copied');
+          setTimeout(() => {
+            copyBtn.textContent = 'Copier';
+            copyBtn.classList.remove('copied');
+          }, 2000);
+        });
+      });
+    </script>
+  </body>
+</html>
