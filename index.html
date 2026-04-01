@@ -145,6 +145,58 @@
       #copy-btn.copied {
         background: #2e7d32;
       }
+      #layer-panel {
+        position: fixed;
+        top: 172px;
+        right: 10px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+        z-index: 500;
+        min-width: 230px;
+        font-size: 13px;
+        overflow: hidden;
+      }
+      #layer-panel-header {
+        background: #003189;
+        color: white;
+        padding: 8px 14px;
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        user-select: none;
+      }
+      #layer-panel-body {
+        padding: 10px 14px;
+      }
+      .layer-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 0;
+        cursor: pointer;
+      }
+      .layer-item input[type=checkbox] {
+        cursor: pointer;
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
+      .layer-item input[type=checkbox]:disabled {
+        cursor: wait;
+      }
+      .layer-dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+        flex-shrink: 0;
+      }
+      .layer-label {
+        color: #1a1a1a;
+      }
     </style>
   </head>
   <body>
@@ -207,13 +259,85 @@
       // Ajout d'un sélecteur de carte
       map.addControl(new CarteFacile.MapSelectorControl);
 
-      // Ajouter des surcouches (dé-commenter les lignes en dessous pour ajouter ces surcouches)
-      //CarteFacile.addOverlay(map, 'cadastre');
-      //CarteFacile.addOverlay(map, ['levelCurves', 'administrativeBoundaries']);
+      // Définition des surcouches WMS
+      const overlays = [
+        {
+          id: 'natura2000',
+          label: 'Natura 2000 (ZPS & ZSC)',
+          color: '#2d6a4f',
+          tiles: 'https://data.geopf.fr/wms-r?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=PROTECTEDAREAS.N2000&STYLES=&FORMAT=image/png&TRANSPARENT=true&CRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256',
+          attribution: '© IGN – Natura 2000'
+        },
+        {
+          id: 'amp',
+          label: 'Aires Marines Protégées',
+          color: '#1565c0',
+          tiles: 'https://ws.carmencarto.fr/WMS/95/amp_metropole?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&LAYERS=AMP_tout&STYLES=&FORMAT=image/png&TRANSPARENT=true&SRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256',
+          attribution: '© OFB – Aires Marines Protégées'
+        },
+        {
+          id: 'posidonie',
+          label: 'Herbiers de posidonie',
+          color: '#52b788',
+          tiles: 'https://ws.carmencarto.fr/WMS/55/habitats_marins_metropole?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&LAYERS=Posidonie&STYLES=&FORMAT=image/png&TRANSPARENT=true&SRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256',
+          attribution: '© INPN – Herbiers de posidonie'
+        }
+      ];
 
-      // Masquer des couches (dé-commenter les lignes en dessous pour masquer ces surcouches)
-      //CarteFacile.hideLayer(map, 'buildings');
-      //CarteFacile.hideLayer(map, ['buildings', 'street_labels']);
+      // Création du panneau de contrôle
+      const panel = document.createElement('div');
+      panel.id = 'layer-panel';
+      panel.innerHTML = `
+        <div id="layer-panel-header">Surcouches <span id="panel-toggle">▾</span></div>
+        <div id="layer-panel-body">
+          ${overlays.map(o => `
+            <label class="layer-item">
+              <input type="checkbox" id="toggle-${o.id}" data-layer="${o.id}" disabled>
+              <span class="layer-dot" style="background:${o.color}"></span>
+              <span class="layer-label">${o.label}</span>
+            </label>
+          `).join('')}
+        </div>
+      `;
+      document.body.appendChild(panel);
+
+      document.getElementById('layer-panel-header').addEventListener('click', () => {
+        const body = document.getElementById('layer-panel-body');
+        const toggle = document.getElementById('panel-toggle');
+        const isOpen = body.style.display !== 'none';
+        body.style.display = isOpen ? 'none' : 'block';
+        toggle.textContent = isOpen ? '▸' : '▾';
+      });
+
+      // Ajout des couches WMS au chargement de la carte
+      map.on('load', () => {
+        overlays.forEach(overlay => {
+          map.addSource(overlay.id, {
+            type: 'raster',
+            tiles: [overlay.tiles],
+            tileSize: 256,
+            attribution: overlay.attribution
+          });
+          map.addLayer({
+            id: overlay.id + '-layer',
+            type: 'raster',
+            source: overlay.id,
+            layout: { visibility: 'none' },
+            paint: { 'raster-opacity': 0.7 }
+          });
+          const cb = document.getElementById('toggle-' + overlay.id);
+          if (cb) {
+            cb.disabled = false;
+            cb.addEventListener('change', (e) => {
+              map.setLayoutProperty(
+                overlay.id + '-layer',
+                'visibility',
+                e.target.checked ? 'visible' : 'none'
+              );
+            });
+          }
+        });
+      });
 
       // Marqueur placé au clic
       let marker = null;
