@@ -264,21 +264,24 @@
         {
           id: 'natura2000',
           label: 'Natura 2000 (ZPS & ZSC)',
-          color: '#2d6a4f',
+          color: '#e65100',
+          rasterColor: 'rgba(230, 81, 0, 0.75)',
           tiles: 'https://ws.carmencarto.fr/WMS/119/fxx_inpn?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&LAYERS=Zones_de_protection_speciale,Sites_d_importance_communautaire_JOUE__ZSC_SIC_&STYLES=&FORMAT=image/png&TRANSPARENT=true&SRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256',
           attribution: '© INPN – Natura 2000'
         },
         {
           id: 'amp',
           label: 'Aires Marines Protégées',
-          color: '#1565c0',
+          color: '#c62828',
+          rasterColor: 'rgba(198, 40, 40, 0.75)',
           tiles: 'https://wxs.ofb.fr/geoserver/gestion/ows?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&LAYERS=ges_omon_amp_ofb_pol_3857_vue&STYLES=&FORMAT=image/png&TRANSPARENT=true&SRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256',
           attribution: '© OFB – Aires Marines Protégées'
         },
         {
           id: 'posidonie',
           label: 'Herbiers de posidonie',
-          color: '#52b788',
+          color: '#6a1b9a',
+          rasterColor: 'rgba(106, 27, 154, 0.75)',
           tiles: 'https://sextant.ifremer.fr/services/wms/biologie?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&LAYERS=BIOMED_POSI_PALAVAS_P,BIOMED_POSI_ALBERES_P&STYLES=&FORMAT=image/png&TRANSPARENT=true&SRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256',
           attribution: '© IFREMER – Herbiers de posidonie'
         }
@@ -292,7 +295,7 @@
         <div id="layer-panel-body">
           ${overlays.map(o => `
             <label class="layer-item">
-              <input type="checkbox" id="toggle-${o.id}" data-layer="${o.id}" disabled>
+              <input type="checkbox" id="toggle-${o.id}" data-layer="${o.id}" disabled checked>
               <span class="layer-dot" style="background:${o.color}"></span>
               <span class="layer-label">${o.label}</span>
             </label>
@@ -322,8 +325,12 @@
             id: overlay.id + '-layer',
             type: 'raster',
             source: overlay.id,
-            layout: { visibility: 'none' },
-            paint: { 'raster-opacity': 0.7 }
+            layout: { visibility: 'visible' },
+            paint: {
+              'raster-color': ['step', ['raster-value'], 'rgba(0,0,0,0)', 0.5, overlay.rasterColor],
+              'raster-color-mix': [0, 0, 0, 1],
+              'raster-color-range': [0, 1]
+            }
           });
           const cb = document.getElementById('toggle-' + overlay.id);
           if (cb) {
