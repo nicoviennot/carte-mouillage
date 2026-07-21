@@ -4,21 +4,24 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ma carte</title>
-
+    <!-- Mode embed : ajouter ?embed a l'URL pour masquer le bandeau -->
+    <script>
+      if (new URLSearchParams(location.search).has('embed')) {
+        document.documentElement.classList.add('embed');
+      }
+    </script>
     <!-- Importation des bibliothèques MapLibre GL JS -->
     <link
       href="https://unpkg.com/maplibre-gl@^5.5.0/dist/maplibre-gl.css"
       rel="stylesheet"
     />
     <script src="https://unpkg.com/maplibre-gl@^5.5.0/dist/maplibre-gl.js"></script>
-
     <!-- Importation des bibliothèques Carte Facile -->
     <link
       href="https://unpkg.com/carte-facile@^0.9.0/dist/carte-facile.css"
       rel="stylesheet"
     />
     <script src="https://unpkg.com/carte-facile@^0.9.0/dist/carte-facile.js"></script>
-
     <!-- Style pour afficher la carte en plein écran -->
     <style>
       html,
@@ -107,6 +110,18 @@
         width: 100%;
         background: #000120;
       }
+      /* ===== Mode embed : masque le bandeau et donne toute la hauteur a la carte ===== */
+      html.embed #bandeau,
+      html.embed #notice {
+        display: none;
+      }
+      html.embed #map {
+        height: 100%;
+      }
+      html.embed #layer-panel {
+        top: 10px;
+      }
+      /* ============================================================================= */
       #coords-popup {
         position: fixed;
         bottom: 40px;
@@ -219,22 +234,18 @@
       </div>
       <h1 class="bandeau-titre">Carte AMIDOMAR</h1>
     </header>
-
     <!-- Bandeau d'information DSFR -->
     <div id="notice" role="note">
       Positionner votre curseur sur la zone de mouillage souhaitée, copier les coordonnées GPS et retourner les coller dans le formulaire de votre démarche.<br>
       <strong>Attention à respecter les zones interdites et sensibles.</strong>
     </div>
-
     <!-- Le conteneur de la carte -->
     <div id="map"></div>
-
     <!-- Popup de coordonnées -->
     <div id="coords-popup">
       <span id="coords-text"></span>
       <button id="copy-btn">Copier</button>
     </div>
-
     <!-- Le script qui initialise la carte -->
     <script>
       // Création la carte
@@ -243,22 +254,16 @@
         style: CarteFacile.mapStyles.simple, // Style de carte
         maxZoom: 18.9, // niveau de zoom maximum, adapté aux cartes utilisant les données IGN
       });
-
       // Ajout d'une barre de recherche
       map.addControl(new CarteFacile.SearchControl);
-
       // Ajout d'un contrôle de navigation
       map.addControl(new maplibregl.NavigationControl);
-
       // Ajout d'une échelle
       map.addControl(new maplibregl.ScaleControl);
-
       // Ajout d'un bouton de Géolocalisation
       map.addControl(new maplibregl.GeolocateControl);
-
       // Ajout d'un sélecteur de carte
       map.addControl(new CarteFacile.MapSelectorControl);
-
       // Définition des surcouches WMS
       const overlays = [
         {
@@ -286,7 +291,6 @@
           attribution: '© IFREMER – Herbiers de posidonie'
         }
       ];
-
       // Création du panneau de contrôle
       const panel = document.createElement('div');
       panel.id = 'layer-panel';
@@ -303,7 +307,6 @@
         </div>
       `;
       document.body.appendChild(panel);
-
       document.getElementById('layer-panel-header').addEventListener('click', () => {
         const body = document.getElementById('layer-panel-body');
         const toggle = document.getElementById('panel-toggle');
@@ -311,7 +314,6 @@
         body.style.display = isOpen ? 'none' : 'block';
         toggle.textContent = isOpen ? '▸' : '▾';
       });
-
       // Ajout des couches WMS au chargement de la carte
       map.on('load', () => {
         overlays.forEach(overlay => {
@@ -341,17 +343,14 @@
           }
         });
       });
-
       // Marqueur placé au clic
       let marker = null;
       const popup = document.getElementById('coords-popup');
       const coordsText = document.getElementById('coords-text');
       const copyBtn = document.getElementById('copy-btn');
-
       map.on('click', (e) => {
         const { lng, lat } = e.lngLat;
         const coords = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-
         // Placer ou déplacer le marqueur
         if (marker) {
           marker.setLngLat([lng, lat]);
@@ -360,14 +359,12 @@
             .setLngLat([lng, lat])
             .addTo(map);
         }
-
         // Afficher les coordonnées
         coordsText.textContent = coords;
         popup.classList.add('visible');
         copyBtn.textContent = 'Copier';
         copyBtn.classList.remove('copied');
       });
-
       copyBtn.addEventListener('click', () => {
         navigator.clipboard.writeText(coordsText.textContent).then(() => {
           copyBtn.textContent = 'Copié !';
